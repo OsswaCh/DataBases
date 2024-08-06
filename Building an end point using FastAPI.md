@@ -1,4 +1,5 @@
 
+>[!info] check this [repo](https://github.com/OsswaCh/FastAPI_endPoint_Doctor_app.git) for the details about testing this code 
 # GET
 - **GET method**: retrieves information or data from a specified resource
 
@@ -76,7 +77,165 @@ The `except` block catches any `ResourceNotFound` exceptions, which would occur 
 # POST
  - submits data to be processed to a specified resource 
 
+here we will be taking the example of creating a new doctor document: suppose when he first signs in
+
+```python
+	class Doctor (BaseModel):
+    name: str
+    speciality: str
+    phone: str
+    email: str
+    address: str
+    city: str
+    description: str
+
+
+@app.post("/add_doctor")
+async def add_doctor(doctor: Doctor):
+    try:
+        doc_id = "asone:code:doctors"
+
+        # creation of a new document
+        doc = {
+            "id": doc_id,
+            "name": doctor.name,
+            "speciality": doctor.speciality,
+            "phone": doctor.phone,
+            "email": doctor.email,
+            "address": doctor.address,
+            "city": doctor.city,
+            "description": doctor.description
+        }
+
+        db_asone.save(doc)
+
+        return JSONResponse(content={"message": "doctor added successfully"}, headers={"Access-Control-Allow-Origin": "*"})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+```
+
+here the class doctor can be changed to a simple dictionary, the example just follows this structure 
+
+#### 1. create the object
+here doc components are passed to the function and assigned later
+#### 2. Save
+`db_asone.save(doc)` saves the variable in the db
+
 # PUT
 - updates a specified resource with new data
+
+```python
+@app.put("/add_speciality")
+async def add_speciality(speciality: str):
+    try:
+        specialties_document_id = "asone:code:specialite"
+        # Check if the specialities document exists in the database
+        if specialties_document_id not in db_asone:
+            raise HTTPException(status_code=404, detail="specialities document not found")
+
+        # Retrieve the existing document 
+        doc = db_asone[specialties_document_id]
+
+        # get the current specialities and make sure it is a list 
+        specialties = doc.get("specialites", [])
+        if isinstance(specialties, str):
+            specialties = [specialties] 
+
+        # add the new speciality to the list
+        if speciality not in specialties:
+            specialties.append(speciality)
+
+        # update the document with the new specialities
+        doc["specialites"] = specialties
+        db_asone.save(doc)
+
+        return JSONResponse(content={"message": "speciality added successfully"}, headers={"Access-Control-Allow-Origin": "*"})
+    except ResourceNotFound:
+        raise HTTPException(status_code=404, detail="specialities document not found")
+```
+
+database format: any addition later will be added to the specialties array 
+```NoSQL
+{
+  "_id": "asone:code:specialite",
+  "_rev": "6-4c45f887c1a0c345ae21472d59d44279",
+  "specialites": [
+    "osswaaaaaaaaaaa",
+    "new specialty",
+    "haja"
+  ]
+}
+```
+
+- **Retrieve the Field with a Default Value**
+    
+    `specialities = doc.get("specialites", [])`
+    
+    This line attempts to retrieve the value associated with the key `"specialites"` from the `doc` dictionary. The `get` method is used here, which returns the value of the key if it exists; otherwise, it returns the default value provided as the second argument. In this case, the default value is an empty list (`[]`). This ensures that if the `"specialites"` key is not present in the document, `specialities` will be initialized as an empty list.
+    
+- **Check if the Field is a String**
+    
+    `if isinstance(specialities, str):`
+    
+    The `isinstance` function checks if `specialities` is an instance of the `str` class. This condition is true if the value retrieved from the `"specialites"` field is a string.
+    
+- **Convert String to Array**
+    
+    `specialties = [specialties]`
+    
+    If `specialities` is indeed a string, this line converts it into a list containing that string. This transformation ensures that `specialities` is always an array, even if the input was a single string.
+-  Save
+	`db_asone.save(doc)` saves the variable in the db
+
 # DELETE 
 - deletes a specified resource
+this example deletes a whole document
+
+```python 
+@app.delete("/delete_doctor")
+async def delete_doctor(doctor_id: str):
+    try: 
+        if doctor_id not in db_asone:
+            raise HTTPException(status_code=404, detail="doctor not found, cannot be removed")
+        doc= db_asone[doctor_id]
+        db_asone.delete(doc)
+        return JSONResponse(content={"message": "doctor deleted successfully"}, headers={"Access-Control-Allow-Origin": "*"})
+    except ResourceNotFound:
+        raise HTTPException(status_code=404, detail="doctor not found, cannot be removed")
+
+
+```
+
+this however is a form of update but can be considered a delete 
+```python 
+
+# -------- delete a speciality ---------- #
+@app.delete("/delete_speciality")
+async def add_speciality(speciality: str):
+    try:
+        specialties_document_id = "asone:code:specialite"
+        # Check if the specialities document exists in the database
+        if specialties_document_id not in db_asone:
+            raise HTTPException(status_code=404, detail="specialities document not found")
+
+        # Retrieve the existing document 
+        doc = db_asone[specialties_document_id]
+
+        # get the current specialities and make sure it is a list 
+        specialties = doc.get("specialites", [])
+        if isinstance(specialties, str):
+            specialties = [specialties] 
+
+        # delete the speciality from the list
+        if speciality in specialties:
+            specialties.remove(speciality)
+
+        # update the document with the new specialities
+        doc["specialites"] = specialties
+        db_asone.save(doc)
+
+        return JSONResponse(content={"message": "speciality added successfully"}, headers={"Access-Control-Allow-Origin": "*"})
+    except ResourceNotFound:
+        raise HTTPException(status_code=404, detail="specialities document not found")
+    
+```
