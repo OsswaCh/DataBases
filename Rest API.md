@@ -17,6 +17,7 @@ read: GET
 update: PUT
 delete: DELETE
 
+view : [[Building an end point using FastAPI]]
 getting the flavor 
 ![[Pasted image 20240805104300.png]]
 
